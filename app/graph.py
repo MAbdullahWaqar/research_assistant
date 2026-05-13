@@ -19,10 +19,10 @@ from __future__ import annotations
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import StateGraph, END
 
-from checkpointing import get_checkpointer
-from state import ResearchState
-from agents import clarity_agent, research_agent, validator_agent, synthesis_agent
-from config import CONFIDENCE_THRESHOLD, MAX_RESEARCH_ATTEMPTS
+from .checkpointing import get_checkpointer
+from .state import ResearchState
+from .agents import clarity_agent, research_agent, validator_agent, synthesis_agent
+from .config import CONFIDENCE_THRESHOLD, MAX_RESEARCH_ATTEMPTS
 
 
 # ── Node names (constants keep things DRY) ─────────────────────────────────────

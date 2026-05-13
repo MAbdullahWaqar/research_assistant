@@ -20,11 +20,11 @@ import uuid
 
 from langchain_core.messages import HumanMessage
 
-from config import validate_config
-from graph import build_graph
-from observability import setup_application_logging
-from state import ResearchState
-from utils import (
+from app.config import validate_config
+from app.graph import build_graph
+from app.observability import setup_application_logging
+from app.state import ResearchState
+from app.utils import (
     console,
     show_welcome,
     show_separator,

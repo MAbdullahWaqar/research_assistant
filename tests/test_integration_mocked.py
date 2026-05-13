@@ -12,8 +12,8 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 
-from graph import build_graph
-from state import ResearchState
+from app.graph import build_graph
+from app.state import ResearchState
 
 
 class _StubChatModel:
@@ -35,10 +35,10 @@ class _StubChatModel:
 def _patch_agent_llms(stub: _StubChatModel):
     """Each agent binds ``get_chat_llm`` at import time — patch every module."""
     return (
-        patch("agents.clarity.get_chat_llm", return_value=stub),
-        patch("agents.research.get_chat_llm", return_value=stub),
-        patch("agents.validator.get_chat_llm", return_value=stub),
-        patch("agents.synthesis.get_chat_llm", return_value=stub),
+        patch("app.agents.clarity.get_chat_llm", return_value=stub),
+        patch("app.agents.research.get_chat_llm", return_value=stub),
+        patch("app.agents.validator.get_chat_llm", return_value=stub),
+        patch("app.agents.synthesis.get_chat_llm", return_value=stub),
     )
 
 
@@ -94,7 +94,7 @@ def test_graph_clear_query_high_confidence_skips_validator(
         for ctx in _patch_agent_llms(stub):
             stack.enter_context(ctx)
         stack.enter_context(
-            patch("agents.research.tavily_search", side_effect=lambda q, **kw: _fake_results())
+            patch("app.agents.research.tavily_search", side_effect=lambda q, **kw: _fake_results())
         )
         out = graph.invoke(initial, config=cfg)
 
@@ -143,7 +143,7 @@ def test_graph_low_confidence_runs_validator_then_synthesis() -> None:
         for ctx in _patch_agent_llms(stub):
             stack.enter_context(ctx)
         stack.enter_context(
-            patch("agents.research.tavily_search", side_effect=lambda q, **kw: _fake_results())
+            patch("app.agents.research.tavily_search", side_effect=lambda q, **kw: _fake_results())
         )
         out = graph.invoke(initial, config=cfg)
 

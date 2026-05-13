@@ -1,3 +1,10 @@
+Metadata-Version: 2.4
+Name: research-assistant
+Version: 0.1.0
+Summary: LangGraph multi-agent business research assistant
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+
 # Multi-Agent Business Research Assistant
 
 A production-grade LangGraph multi-agent system that helps users research businesses using specialized, collaborating AI agents.
@@ -122,7 +129,7 @@ All domain logic lives under **`app/`** so the repo root stays thin (entrypoints
 ## Features
 
 - **Multi-turn conversation** — full history maintained across queries
-- **Human-in-the-loop** — LangGraph ``interrupt()`` pauses when a query is ambiguous; the CLI resumes with ``Command(resume=...)`` (see ``app/utils/hitl.py``)
+- **Human-in-the-loop** — LangGraph ``interrupt()`` pauses when a query is ambiguous; the CLI resumes with ``Command(resume=...)`` (see ``utils/hitl.py``)
 - **Retry loop** — Validator can send Research Agent back for better data (max 3 attempts)
 - **Confidence scoring** — Research Agent self-scores its findings 0–10
 - **Rich terminal UI** — colored output with agent status indicators
@@ -137,7 +144,7 @@ By default the graph uses **SQLite** (`langgraph-checkpoint-sqlite`) at `LANGGRA
 ### Observability
 
 - **Application logs** — `main.py` / `demo.py` call `observability.setup_application_logging()`. Tune `LOG_LEVEL` and set `JSON_LOGS=1` for log aggregation–friendly JSON lines.
-- **Graph turn breadcrumbs** — `main.py` and `app/utils/hitl.py` log invoke / interrupt / resume with `thread_id`.
+- **Graph turn breadcrumbs** — `main.py` and `utils/hitl.py` log invoke / interrupt / resume with `thread_id`.
 - **LangSmith** — enable `LANGCHAIN_TRACING_V2` and `LANGCHAIN_API_KEY` for full LLM/tool traces (LangChain picks these up automatically).
 
 ### Tests

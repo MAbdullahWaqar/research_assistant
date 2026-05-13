@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from graph import (
+from app.graph import (
     NODE_RESEARCH,
     NODE_SYNTHESIS,
     NODE_VALIDATOR,
     route_after_research,
     route_after_validator,
 )
-from config import CONFIDENCE_THRESHOLD, MAX_RESEARCH_ATTEMPTS
+from app.config import CONFIDENCE_THRESHOLD, MAX_RESEARCH_ATTEMPTS
 
 
 def test_route_after_research_high_confidence_skips_validator() -> None:

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from langchain_groq import ChatGroq
 
-from config import GROQ_API_KEY, LLM_MODEL, LLM_MAX_TOKENS, LLM_TEMPERATURE
+from .config import GROQ_API_KEY, LLM_MODEL, LLM_MAX_TOKENS, LLM_TEMPERATURE
 
 
 def get_chat_llm(

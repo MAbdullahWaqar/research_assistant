@@ -22,10 +22,10 @@ import json
 
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
-from config import MAX_RESEARCH_ATTEMPTS
-from llm import get_chat_llm
-from state import ResearchState
-from utils import show_agent_start, show_agent_result
+from ..config import MAX_RESEARCH_ATTEMPTS
+from ..llm import get_chat_llm
+from ..state import ResearchState
+from ..utils import show_agent_start, show_agent_result
 
 
 # ── System prompt ──────────────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ from typing import Optional
 
 from tavily import TavilyClient
 
-from config import TAVILY_API_KEY, TAVILY_MAX_RESULTS, TAVILY_TRANSPORT
+from ..config import TAVILY_API_KEY, TAVILY_MAX_RESULTS, TAVILY_TRANSPORT
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def tavily_search(query: str, max_results: int = TAVILY_MAX_RESULTS) -> list[dic
     """
     transport = (TAVILY_TRANSPORT or "sdk").lower()
     if transport in {"mcp", "mcp_http", "remote_mcp"}:
-        from tools.mcp_tavily import tavily_search_mcp
+        from .mcp_tavily import tavily_search_mcp
 
         return tavily_search_mcp(query, max_results=max_results)
     return _tavily_search_sdk(query, max_results)

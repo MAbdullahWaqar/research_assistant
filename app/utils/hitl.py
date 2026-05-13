@@ -12,7 +12,7 @@ from typing import Any
 
 from langgraph.types import Command
 
-from state import ResearchState
+from ..state import ResearchState
 
 _log = logging.getLogger(__name__)
 

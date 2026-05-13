@@ -7,7 +7,7 @@ and any AI assistance used during development.
 
 ## 1. Clarity Agent System Prompt
 
-**File:** `agents/clarity.py` → `_SYSTEM_PROMPT`
+**File:** `app/agents/clarity.py` → `_SYSTEM_PROMPT`
 
 ```
 You are the Clarity Agent in a business research pipeline.
@@ -48,7 +48,7 @@ Respond ONLY with a JSON object — no markdown fences, no extra text:
 
 ## 2. Research Agent — Query Builder Prompt
 
-**File:** `agents/research.py` → `_QUERY_BUILDER_PROMPT`
+**File:** `app/agents/research.py` → `_QUERY_BUILDER_PROMPT`
 
 ```
 You are a search query expert.
@@ -71,7 +71,7 @@ Respond ONLY with a JSON array of query strings:
 
 ## 3. Research Agent — Synthesis Prompt
 
-**File:** `agents/research.py` → `_SYSTEM_PROMPT`
+**File:** `app/agents/research.py` → `_SYSTEM_PROMPT`
 
 ```
 You are the Research Agent in a business intelligence pipeline.
@@ -106,7 +106,7 @@ Respond ONLY with a JSON object — no markdown fences, no extra text:
 
 ## 4. Validator Agent System Prompt
 
-**File:** `agents/validator.py` → `_SYSTEM_PROMPT`
+**File:** `app/agents/validator.py` → `_SYSTEM_PROMPT`
 
 ```
 You are the Validator Agent in a business research pipeline.
@@ -140,7 +140,7 @@ Mark findings as INSUFFICIENT if:
 
 ---
 
-**File:** `agents/synthesis.py` → `_SYSTEM_PROMPT`
+**File:** `app/agents/synthesis.py` → `_SYSTEM_PROMPT`
 
 ```
 You are the Synthesis Agent — the final step in a business research pipeline.
@@ -174,6 +174,6 @@ Tone: informative, confident, helpful — like a knowledgeable analyst briefing 
 Claude (claude.ai) was used during development to:
 1. Validate LangGraph API patterns (StateGraph, MemorySaver, conditional_edges).
 2. Confirm the `Annotated[list[BaseMessage], operator.add]` pattern for message accumulation.
-3. Review the human-in-the-loop pattern: LangGraph ``interrupt()`` inside the Clarity Agent, with ``Command(resume=...)`` handled by ``utils.hitl.invoke_until_complete`` (replacing the earlier re-invoke-with-enriched-query pattern).
+3. Review the human-in-the-loop pattern: LangGraph ``interrupt()`` inside the Clarity Agent, with ``Command(resume=...)`` handled by ``app.utils.hitl.invoke_until_complete`` (replacing the earlier re-invoke-with-enriched-query pattern).
 
 All architectural decisions, code structure, comments, and prompts were written by the author.

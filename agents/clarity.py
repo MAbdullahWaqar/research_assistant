@@ -1,0 +1,146 @@
+"""
+agents/clarity.py
+-----------------
+Clarity Agent — the first node in the graph.
+
+Responsibilities:
+  • Determine whether the user's query is specific enough to research.
+  • Check that a company name (or clear reference via conversation history) exists.
+  • Output clarity_status = "clear" | "needs_clarification".
+  • If unclear, populate clarification_request with a helpful prompt for the user.
+
+Routing (handled in graph.py):
+  clear               → Research Agent
+  needs_clarification → Human Interrupt node
+"""
+
+from __future__ import annotations
+
+import json
+
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+
+from config import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
+from state import ResearchState
+from utils import show_agent_start, show_agent_result
+
+
+# ── System prompt ──────────────────────────────────────────────────────────────
+
+_SYSTEM_PROMPT = """You are the Clarity Agent in a business research pipeline.
+
+Your job is to decide whether the user's query is clear enough to research.
+
+A query is CLEAR when:
+1. A specific company name is mentioned (e.g. "Apple", "Tesla", "OpenAI"), OR
+2. The conversation history makes it obvious which company is being discussed
+   (e.g. the user previously asked about Apple and now says "What about their CEO?").
+3. The question has a researchable intent (financials, news, competitors, products, etc.).
+
+A query NEEDS CLARIFICATION when:
+1. No company is named and conversation history doesn't make it clear.
+2. The query is so vague that meaningful research is impossible
+   (e.g. "tell me about a company" with no prior context).
+
+IMPORTANT: Be generous. If history makes the company obvious, mark it as clear.
+Follow-up questions like "What about their competitors?" or "Tell me more" are CLEAR
+if the previous conversation established a company.
+
+Respond ONLY with a JSON object — no markdown fences, no extra text:
+{
+  "clarity_status": "clear" | "needs_clarification",
+  "clarification_request": "<question to ask user, or empty string if clear>",
+  "reasoning": "<brief internal reasoning>"
+}
+"""
+
+
+def clarity_agent(state: ResearchState) -> dict:
+    """
+    Evaluate the user's current query for clarity.
+
+    Args:
+        state: The current graph state.
+
+    Returns:
+        Partial state dict with clarity_status, clarification_request, and
+        an appended AIMessage recording the agent's decision.
+    """
+    show_agent_start("Clarity Agent", "🔍")
+
+    # Build conversation context so the agent can use history for follow-ups
+    history_text = _build_history_text(state.get("messages", []))
+
+    llm = ChatAnthropic(
+        model=LLM_MODEL,
+        temperature=LLM_TEMPERATURE,
+        max_tokens=LLM_MAX_TOKENS,
+    )
+
+    prompt_messages = [
+        SystemMessage(content=_SYSTEM_PROMPT),
+        HumanMessage(
+            content=(
+                f"Conversation history so far:\n{history_text}\n\n"
+                f"Current user query: {state['user_query']}\n\n"
+                "Is this query clear enough to research? Respond with JSON only."
+            )
+        ),
+    ]
+
+    response = llm.invoke(prompt_messages)
+    raw = response.content.strip()
+
+    # Parse the structured JSON output from the LLM
+    parsed = _parse_json_response(raw)
+
+    clarity_status       = parsed.get("clarity_status", "needs_clarification")
+    clarification_request = parsed.get("clarification_request", "Could you please specify which company you're asking about?")
+    reasoning            = parsed.get("reasoning", "")
+
+    show_agent_result("Clarity Agent", "status", clarity_status)
+    if reasoning:
+        show_agent_result("Clarity Agent", "reasoning", reasoning)
+
+    return {
+        "clarity_status": clarity_status,
+        "clarification_request": clarification_request,
+        # Append an AI message so history records the clarity decision
+        "messages": [
+            AIMessage(
+                content=f"[Clarity Agent] Status: {clarity_status}. {clarification_request or reasoning}"
+            )
+        ],
+    }
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _build_history_text(messages: list) -> str:
+    """Flatten message history into a readable string for the prompt."""
+    if not messages:
+        return "(no prior conversation)"
+    lines = []
+    for msg in messages[-10:]:   # cap at last 10 messages to stay within token limits
+        role = "User" if isinstance(msg, HumanMessage) else "Assistant"
+        lines.append(f"{role}: {msg.content}")
+    return "\n".join(lines)
+
+
+def _parse_json_response(raw: str) -> dict:
+    """
+    Safely parse JSON from the LLM response.
+    Falls back to a safe default if parsing fails.
+    """
+    try:
+        # Strip accidental markdown fences the model might add
+        clean = raw.replace("```json", "").replace("```", "").strip()
+        return json.loads(clean)
+    except (json.JSONDecodeError, ValueError):
+        # If the LLM misbehaves, default to asking for clarification
+        return {
+            "clarity_status": "needs_clarification",
+            "clarification_request": "Could you clarify which company you're asking about?",
+            "reasoning": "Failed to parse LLM response; defaulting to clarification.",
+        }

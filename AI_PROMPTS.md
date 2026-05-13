@@ -171,7 +171,7 @@ Tone: informative, confident, helpful — like a knowledgeable analyst briefing 
 
 ## Development Assistance
 
-Claude (claude.ai) was used during development to:
+Cursor  was used during development to:
 1. Validate LangGraph API patterns (StateGraph, MemorySaver, conditional_edges).
 2. Confirm the `Annotated[list[BaseMessage], operator.add]` pattern for message accumulation.
 3. Review the human-in-the-loop pattern: LangGraph ``interrupt()`` inside the Clarity Agent, with ``Command(resume=...)`` handled by ``app.utils.hitl.invoke_until_complete`` (replacing the earlier re-invoke-with-enriched-query pattern).

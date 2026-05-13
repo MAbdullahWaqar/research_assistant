@@ -11,7 +11,7 @@ flowchart TB
   R -->|confidence ≥ 6| S[Synthesis agent]
   R -->|confidence < 6| V[Validator agent]
   V -->|sufficient or attempts ≥ 3| S
-  V -->|insufficient and attempts < 3| R
+  V -->|insufficient and attempts < 3 | R
   S --> OUT([Response])
 ```
 

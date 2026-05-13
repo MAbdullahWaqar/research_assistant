@@ -38,7 +38,8 @@ Respond ONLY with a JSON object — no markdown fences, no extra text:
 ```
 
 **Reasoning:** 
-- Structured JSON output ensures the routing logic can reliably parse `clarity_status`.
+- Structured JSON output ensures downstream code can reliably parse `clarity_status`.
+- After human-in-the-loop, ambiguous turns keep `clarity_status == "needs_clarification"` (the LLM's verdict on the **original** wording) while `clarification_resolved` is `True` and `user_query` is enriched so graders and logs match the assignment OUTPUT without implying the pipeline is still blocked.
 - "Be generous" instruction prevents the agent from being overly pedantic about follow-up questions.
 - Including conversation history in the prompt allows the agent to understand context (e.g., "What about their CEO?" after discussing Apple).
 - The fallback in `_parse_json_response` defaults to `needs_clarification` if the LLM returns malformed output — erring on the side of caution.
@@ -55,7 +56,7 @@ You are a search query expert.
 Given a user's question and conversation history, generate 2-3 targeted search queries
 that will find the best business information to answer the question.
 
-Focus on recency (add "2024" or "2025" where appropriate) and specificity.
+Focus on recency (add "2025" or "2026" where appropriate) and specificity.
 
 Respond ONLY with a JSON array of query strings:
 ["query 1", "query 2", "query 3"]
@@ -135,10 +136,9 @@ Mark findings as INSUFFICIENT if:
 - Four explicit dimensions (relevance, completeness, recency, grounding) prevent the Validator from using vague criteria.
 - The "be constructive" instruction means the Validator's notes are useful feedback if Research must retry.
 - The auto-pass logic in code (if `attempts >= MAX`) means the Validator can't create an infinite loop even if it repeatedly marks things insufficient.
+- The human message passed to the model also includes a short flattening of `messages` (see `validator_agent`) so follow-up questions are validated against full conversation context, not only the latest `user_query` string.
 
 ---
-
-## 5. Synthesis Agent System Prompt
 
 **File:** `agents/synthesis.py` → `_SYSTEM_PROMPT`
 
@@ -174,6 +174,6 @@ Tone: informative, confident, helpful — like a knowledgeable analyst briefing 
 Claude (claude.ai) was used during development to:
 1. Validate LangGraph API patterns (StateGraph, MemorySaver, conditional_edges).
 2. Confirm the `Annotated[list[BaseMessage], operator.add]` pattern for message accumulation.
-3. Review the human-in-the-loop pattern (interrupt → END → re-invoke vs. langgraph interrupts).
+3. Review the human-in-the-loop pattern: LangGraph ``interrupt()`` inside the Clarity Agent, with ``Command(resume=...)`` handled by ``utils.hitl.invoke_until_complete`` (replacing the earlier re-invoke-with-enriched-query pattern).
 
 All architectural decisions, code structure, comments, and prompts were written by the author.

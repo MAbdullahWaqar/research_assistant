@@ -31,11 +31,15 @@ class ResearchState(TypedDict):
     user_query: str
 
     # ── Clarity Agent outputs ─────────────────────────────────────────────────
-    # "clear" → route to Research Agent
-    # "needs_clarification" → interrupt and ask the user
-    clarity_status: str  # "clear" | "needs_clarification"
+    # "clear" | "needs_clarification" — the LLM's judgment on the user's phrasing.
+    # After HITL, ambiguous turns keep "needs_clarification" here (assignment OUTPUT)
+    # while clarification_resolved is True and user_query is enriched for Research.
+    clarity_status: str
 
-    # Human-readable explanation of why the query was flagged as unclear
+    # True once the user has supplied clarification via interrupt/resume.
+    clarification_resolved: bool
+
+    # Question shown to the user when clarification was needed (audit / UX trail).
     clarification_request: str
 
     # ── Research Agent outputs ────────────────────────────────────────────────

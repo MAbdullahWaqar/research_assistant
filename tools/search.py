@@ -1,26 +1,28 @@
 """
 tools/search.py
 ---------------
-Wraps the Tavily Search API into a simple callable used by the Research Agent.
+Tavily-backed search for the Research Agent.
 
-Tavily is purpose-built for LLM-friendly web search: it returns clean,
-summarised snippets rather than raw HTML, making it ideal for RAG pipelines.
+- ``TAVILY_TRANSPORT=sdk`` (default): official ``tavily-python`` client.
+- ``TAVILY_TRANSPORT=mcp``: Tavily remote MCP (streamable HTTP via ``langchain-mcp-adapters``).
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
+
 from tavily import TavilyClient
 
-from config import TAVILY_API_KEY, TAVILY_MAX_RESULTS
+from config import TAVILY_API_KEY, TAVILY_MAX_RESULTS, TAVILY_TRANSPORT
 
+logger = logging.getLogger(__name__)
 
-# Module-level client — instantiated once and reused across calls.
 _client: Optional[TavilyClient] = None
 
 
 def _get_client() -> TavilyClient:
-    """Lazily initialise the Tavily client."""
+    """Lazily initialise the Tavily SDK client."""
     global _client
     if _client is None:
         if not TAVILY_API_KEY:
@@ -29,37 +31,33 @@ def _get_client() -> TavilyClient:
     return _client
 
 
-def tavily_search(query: str, max_results: int = TAVILY_MAX_RESULTS) -> list[dict]:
-    """
-    Run a Tavily search and return a list of result dicts.
-
-    Each result dict contains:
-        - 'title'   (str)  : Page title
-        - 'url'     (str)  : Source URL
-        - 'content' (str)  : LLM-friendly snippet / summary
-        - 'score'   (float): Tavily relevance score (0-1)
-
-    Args:
-        query:       The search query string.
-        max_results: How many results to return (default from config).
-
-    Returns:
-        List of result dicts. Empty list on error.
-    """
+def _tavily_search_sdk(query: str, max_results: int) -> list[dict]:
     try:
         client = _get_client()
         response = client.search(
             query=query,
             max_results=max_results,
-            search_depth="advanced",   # "advanced" gives richer snippets
-            include_answer=True,        # Tavily generates a quick answer too
+            search_depth="advanced",
+            include_answer=True,
         )
-        results = response.get("results", [])
-        return results
+        return response.get("results", [])
     except Exception as exc:
-        # Surface the error without crashing the agent loop.
-        print(f"[Search Tool] Error during Tavily search: {exc}")
+        logger.warning("Tavily SDK search failed for query=%r: %s", query, exc, exc_info=False)
         return []
+
+
+def tavily_search(query: str, max_results: int = TAVILY_MAX_RESULTS) -> list[dict]:
+    """
+    Run a Tavily search and return a list of result dicts (title, url, content, score).
+
+    Transport is selected by ``TAVILY_TRANSPORT`` in ``config`` (from env).
+    """
+    transport = (TAVILY_TRANSPORT or "sdk").lower()
+    if transport in {"mcp", "mcp_http", "remote_mcp"}:
+        from tools.mcp_tavily import tavily_search_mcp
+
+        return tavily_search_mcp(query, max_results=max_results)
+    return _tavily_search_sdk(query, max_results)
 
 
 def format_search_results(results: list[dict]) -> str:
@@ -83,6 +81,6 @@ def format_search_results(results: list[dict]) -> str:
         lines.append(f"**[{i}] {title}**")
         lines.append(f"Source: {url}")
         lines.append(content)
-        lines.append("")   # blank line between entries
+        lines.append("")
 
     return "\n".join(lines)

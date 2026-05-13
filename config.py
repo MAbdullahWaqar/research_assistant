@@ -35,6 +35,9 @@ CONFIDENCE_THRESHOLD = 6.0
 # Number of Tavily search results to fetch per query
 TAVILY_MAX_RESULTS = 5
 
+# ``sdk`` (default): Tavily Python client. ``mcp``: remote Tavily MCP (streamable HTTP).
+TAVILY_TRANSPORT: str = os.environ.get("TAVILY_TRANSPORT", "sdk").strip().lower()
+
 
 # ── API keys (pulled from environment) ────────────────────────────────────────
 

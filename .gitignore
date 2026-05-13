@@ -1,1 +1,6 @@
 .env
+.venv/
+.checkpoints/
+__pycache__/
+*.py[cod]
+*.pyo

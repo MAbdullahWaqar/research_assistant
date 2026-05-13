@@ -6,12 +6,14 @@ Clarity Agent — the first node in the graph.
 Responsibilities:
   • Determine whether the user's query is specific enough to research.
   • Check that a company name (or clear reference via conversation history) exists.
-  • Output clarity_status = "clear" | "needs_clarification".
-  • If unclear, populate clarification_request with a helpful prompt for the user.
+  • If unclear: ``interrupt()`` pauses the graph; on resume, merge the reply into
+    ``user_query``, set ``clarity_status`` to ``needs_clarification`` (LLM verdict on
+    the original query), ``clarification_resolved`` to True, and keep the prompt in
+    ``clarification_request`` for the audit trail.
+  • If already clear: ``clarity_status`` is ``clear``, ``clarification_resolved`` False.
 
 Routing (handled in graph.py):
-  clear               → Research Agent
-  needs_clarification → Human Interrupt node
+  Clarity Agent → Research Agent (interrupt blocks inside the node until resumed).
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from __future__ import annotations
 import json
 
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langgraph.types import interrupt
 
 from llm import get_chat_llm
 from state import ResearchState
@@ -63,8 +66,8 @@ def clarity_agent(state: ResearchState) -> dict:
         state: The current graph state.
 
     Returns:
-        Partial state dict with clarity_status, clarification_request, and
-        an appended AIMessage recording the agent's decision.
+        Partial state updates including ``clarity_status`` per assignment (``clear`` or
+        ``needs_clarification``), ``clarification_resolved``, and appended messages.
     """
     show_agent_start("Clarity Agent", "🔍")
 
@@ -98,13 +101,41 @@ def clarity_agent(state: ResearchState) -> dict:
     if reasoning:
         show_agent_result("Clarity Agent", "reasoning", reasoning)
 
+    # ── Ambiguous query: native LangGraph HITL (interrupt → Command(resume=...)) ──
+    if clarity_status == "needs_clarification":
+        payload = {
+            "type": "clarity_hitl",
+            "clarification_request": clarification_request,
+            "reasoning": reasoning,
+        }
+        user_answer = interrupt(payload)
+        answer_str = str(user_answer).strip() if user_answer is not None else ""
+        if not answer_str:
+            answer_str = "(no additional detail provided)"
+        enriched_query = f"{state['user_query']} — Additional context: {answer_str}"
+        show_agent_result("Clarity Agent", "resolved with context", answer_str[:80] + ("…" if len(answer_str) > 80 else ""))
+        return {
+            "user_query": enriched_query,
+            "clarity_status": "needs_clarification",
+            "clarification_resolved": True,
+            "clarification_request": clarification_request,
+            "messages": [
+                AIMessage(
+                    content=(
+                        f"[Clarity Agent] Requested clarification: {clarification_request}"
+                    )
+                ),
+                HumanMessage(content=answer_str),
+            ],
+        }
+
     return {
-        "clarity_status": clarity_status,
-        "clarification_request": clarification_request,
-        # Append an AI message so history records the clarity decision
+        "clarity_status": "clear",
+        "clarification_resolved": False,
+        "clarification_request": "",
         "messages": [
             AIMessage(
-                content=f"[Clarity Agent] Status: {clarity_status}. {clarification_request or reasoning}"
+                content=f"[Clarity Agent] Status: clear. {reasoning or 'Proceeding to research.'}"
             )
         ],
     }

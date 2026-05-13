@@ -99,10 +99,13 @@ def validator_agent(state: ResearchState) -> dict:
 
     llm = get_chat_llm()
 
+    history_text = _build_history_text(state.get("messages", []))
+
     validation_messages = [
         SystemMessage(content=_SYSTEM_PROMPT),
         HumanMessage(
             content=(
+                f"Conversation history (for follow-up context):\n{history_text}\n\n"
                 f"User's original question: {state['user_query']}\n\n"
                 f"Research findings to evaluate:\n{state.get('research_findings', '')}\n\n"
                 f"Confidence score self-reported by Research Agent: "
@@ -136,6 +139,17 @@ def validator_agent(state: ResearchState) -> dict:
             )
         ],
     }
+
+
+def _build_history_text(messages: list) -> str:
+    """Flatten message history into a readable string for the prompt."""
+    if not messages:
+        return "(no prior conversation)"
+    lines = []
+    for msg in messages[-10:]:
+        role = "User" if isinstance(msg, HumanMessage) else "Assistant"
+        lines.append(f"{role}: {msg.content}")
+    return "\n".join(lines)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -129,11 +129,14 @@ def research_agent(state: ResearchState) -> dict:
 
     show_agent_result("Research Agent", "confidence_score", f"{confidence_score:.1f}/10")
 
+    prior_meta = state.get("metadata") or {}
+    merged_meta = {**prior_meta, "sources": sources}
+
     return {
         "research_findings": research_findings,
         "confidence_score": confidence_score,
         "research_attempts": attempts,
-        "metadata": {"sources": sources},
+        "metadata": merged_meta,
         "messages": [
             AIMessage(
                 content=(

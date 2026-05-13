@@ -3,48 +3,23 @@ graph.py
 --------
 Defines and compiles the LangGraph StateGraph for the multi-agent research assistant.
 
-Graph topology:
-                        ┌──────────────────┐
-                        │   START          │
-                        └────────┬─────────┘
-                                 │
-                                 ▼
-                        ┌──────────────────┐
-                        │  clarity_node    │
-                        └────────┬─────────┘
-                                 │
-              ┌──────────────────┴──────────────────┐
-              │ needs_clarification                  │ clear
-              ▼                                      ▼
-    ┌──────────────────┐                  ┌──────────────────┐
-    │ interrupt_node   │ ◄── user input   │  research_node   │◄─────────────┐
-    └────────┬─────────┘                  └────────┬─────────┘              │
-             │ (re-enters at clarity)              │                         │
-             │                        ┌────────────┴───────────┐            │
-             │                 conf<6 │                        │ conf≥6     │
-             │                        ▼                        ▼            │
-             │               ┌────────────────┐    ┌──────────────────┐    │
-             │               │ validator_node │    │ synthesis_node   │    │
-             │               └────────┬───────┘    └──────────────────┘    │
-             │                        │                                     │
-             │           insufficient │ sufficient                          │
-             │           (attempts<3) │                                     │
-             │                        ├─────────────────────────────────────┘ (retry)
-             │                        │ sufficient / max attempts
-             │                        ▼
-             │               ┌──────────────────┐
-             └──────────────►│  synthesis_node  │
-                             └────────┬─────────┘
-                                      │
-                                      ▼
-                                    END
+Graph topology (simplified):
+
+  START → Clarity → Research → (Validator or Synthesis, by confidence)
+                ↑         │
+                └─────────┘  Validator may retry Research (insufficient, attempts < cap)
+                Validator or cap → Synthesis → END
+
+Clarity uses ``interrupt()`` for human-in-the-loop when the query is ambiguous; the
+client resumes with ``Command(resume=...)`` (see ``utils.hitl.invoke_until_complete``).
 """
 
 from __future__ import annotations
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
 
+from checkpointing import get_checkpointer
 from state import ResearchState
 from agents import clarity_agent, research_agent, validator_agent, synthesis_agent
 from config import CONFIDENCE_THRESHOLD, MAX_RESEARCH_ATTEMPTS
@@ -59,19 +34,6 @@ NODE_SYNTHESIS = "synthesis"
 
 
 # ── Conditional routing functions ──────────────────────────────────────────────
-
-def route_after_clarity(state: ResearchState) -> str:
-    """
-    After the Clarity Agent runs, decide where to go next.
-
-    Returns:
-        "__interrupt__" if the query needs clarification (triggers HITL interrupt),
-        NODE_RESEARCH   if the query is clear.
-    """
-    if state.get("clarity_status") == "needs_clarification":
-        return "__interrupt__"
-    return NODE_RESEARCH
-
 
 def route_after_research(state: ResearchState) -> str:
     """
@@ -112,16 +74,17 @@ def route_after_validator(state: ResearchState) -> str:
 
 # ── Graph builder ──────────────────────────────────────────────────────────────
 
-def build_graph() -> StateGraph:
+def build_graph(checkpointer: BaseCheckpointSaver | None = None):
     """
     Construct and compile the LangGraph StateGraph.
 
-    Uses MemorySaver as the checkpointer so conversation state persists
-    across multiple .invoke() calls in the same thread.
-
-    Returns:
-        A compiled CompiledGraph ready to invoke.
+    Args:
+        checkpointer: Optional LangGraph checkpointer. Defaults to ``get_checkpointer()``
+            (SQLite on disk unless ``LANGGRAPH_CHECKPOINT_BACKEND=memory``). Pass
+            ``MemorySaver()`` from tests for hermetic runs.
     """
+    if checkpointer is None:
+        checkpointer = get_checkpointer()
     builder = StateGraph(ResearchState)
 
     # ── Register nodes ────────────────────────────────────────────────────────
@@ -135,15 +98,9 @@ def build_graph() -> StateGraph:
 
     # ── Edges ─────────────────────────────────────────────────────────────────
 
-    # Clarity → (interrupt | Research)
-    builder.add_conditional_edges(
-        NODE_CLARITY,
-        route_after_clarity,
-        {
-            "__interrupt__": END,   # graph pauses; main.py handles re-entry
-            NODE_RESEARCH:   NODE_RESEARCH,
-        },
-    )
+    # Clarity → Research (Clarity calls ``interrupt()`` internally when the query
+    # is ambiguous; the graph pauses until the client invokes ``Command(resume=...)``.)
+    builder.add_edge(NODE_CLARITY, NODE_RESEARCH)
 
     # Research → (Validator | Synthesis)
     builder.add_conditional_edges(
@@ -168,6 +125,5 @@ def build_graph() -> StateGraph:
     # Synthesis → END (always)
     builder.add_edge(NODE_SYNTHESIS, END)
 
-    # ── Compile with in-memory checkpointing ──────────────────────────────────
-    memory = MemorySaver()
-    return builder.compile(checkpointer=memory)
+    # ── Compile with checkpointer (SQLite by default; see checkpointing.py) ─
+    return builder.compile(checkpointer=checkpointer)

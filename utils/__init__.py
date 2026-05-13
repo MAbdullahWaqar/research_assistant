@@ -10,6 +10,7 @@ from .display import (
     show_error,
     show_info,
 )
+from .hitl import invoke_until_complete
 
 __all__ = [
     "console",
@@ -21,4 +22,5 @@ __all__ = [
     "show_separator",
     "show_error",
     "show_info",
+    "invoke_until_complete",
 ]

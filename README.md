@@ -4,34 +4,25 @@ A production-grade LangGraph multi-agent system that helps users research busine
 
 ## Architecture
 
+```mermaid
+flowchart TB
+  U([User query]) --> C[Clarity agent]
+  C --> R[Research agent]
+  R -->|confidence ≥ 6| S[Synthesis agent]
+  R -->|confidence < 6| V[Validator agent]
+  V -->|sufficient or attempts ≥ 3| S
+  V -->|insufficient and attempts < 3| R
+  S --> OUT([Response])
 ```
-User Query
-    │
-    ▼
-┌─────────────────┐
-│  Clarity Agent  │  (uses LangGraph interrupt() if ambiguous, then → Research)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Research Agent  │◄─────────────────────────────────────────────┐
-└────────┬────────┘                                               │
-         │                                                        │
-   confidence < 6                                          insufficient
-         │             confidence ≥ 6                     (attempts < 3)
-         ▼                    │                                   │
-┌─────────────────┐           ▼                      ┌───────────┴──────────┐
-│ Validator Agent │──────────────────────────────────►   Validator Agent    │
-└─────────────────┘     sufficient / max attempts    └──────────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Synthesis Agent │
-└────────┬────────┘
-         │
-         ▼
-      Response
-```
+
+Clarity may call `interrupt()` inside the node when the query is ambiguous; after `Command(resume=…)` the graph always continues **Clarity → Research** (see ``app/graph.py`` and ``app/utils/hitl.py``).
+
+Flow summary (matches ``app/graph.py``):
+
+- **Clarity → Research** (always, after any HITL resume).
+- **Research → Synthesis** if ``confidence_score >= 6``; **Research → Validator** if below 6.
+- **Validator → Research** if ``insufficient`` and ``research_attempts < 3``; **Validator → Synthesis** if ``sufficient`` **or** ``research_attempts >= 3`` (max attempts).
+- **Synthesis → END**.
 
 **Clarity routing vs a two-branch diagram.** Some specs draw separate “Interrupt” and “Research” nodes. Here, **ambiguous queries call `interrupt()` inside the Clarity node**; the graph pauses until the CLI sends `Command(resume=…)`, then the same node enriches `user_query` and the graph always follows **Clarity → Research**. Behavior matches “interrupt or research”; only the *shape* of the graph differs.
 

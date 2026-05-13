@@ -14,10 +14,9 @@ Routing: always → END
 
 from __future__ import annotations
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
-from config import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
+from llm import get_chat_llm
 from state import ResearchState
 from utils import show_agent_start, show_agent_result
 
@@ -55,11 +54,7 @@ def synthesis_agent(state: ResearchState) -> dict:
     """
     show_agent_start("Synthesis Agent", "✍️")
 
-    llm = ChatAnthropic(
-        model=LLM_MODEL,
-        temperature=0.2,          # slightly higher temperature for more natural prose
-        max_tokens=LLM_MAX_TOKENS,
-    )
+    llm = get_chat_llm(temperature=0.2)  # slightly higher temperature for more natural prose
 
     history_text = _build_history_text(state.get("messages", []))
     validation_notes = state.get("validation_notes", "")

@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import json
 
-from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
-from config import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS, CONFIDENCE_THRESHOLD
+from config import CONFIDENCE_THRESHOLD
+from llm import get_chat_llm
 from state import ResearchState
 from tools import tavily_search, format_search_results
 from utils import show_agent_start, show_agent_result
@@ -57,7 +58,7 @@ _QUERY_BUILDER_PROMPT = """You are a search query expert.
 Given a user's question and conversation history, generate 2-3 targeted search queries
 that will find the best business information to answer the question.
 
-Focus on recency (add "2024" or "2025" where appropriate) and specificity.
+Focus on recency (add "2025" or "2026" where appropriate) and specificity.
 
 Respond ONLY with a JSON array of query strings:
 ["query 1", "query 2", "query 3"]
@@ -80,11 +81,7 @@ def research_agent(state: ResearchState) -> dict:
     attempts = state.get("research_attempts", 0) + 1
     show_agent_result("Research Agent", "attempt", f"{attempts}/3")
 
-    llm = ChatAnthropic(
-        model=LLM_MODEL,
-        temperature=LLM_TEMPERATURE,
-        max_tokens=LLM_MAX_TOKENS,
-    )
+    llm = get_chat_llm()
 
     # ── Step 1: Build smart search queries ────────────────────────────────────
     history_text = _build_history_text(state.get("messages", []))
@@ -150,7 +147,7 @@ def research_agent(state: ResearchState) -> dict:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _generate_search_queries(llm: ChatAnthropic, user_query: str, history_text: str) -> list[str]:
+def _generate_search_queries(llm: BaseChatModel, user_query: str, history_text: str) -> list[str]:
     """
     Ask the LLM to generate focused search queries based on the user's question.
     Falls back to a sensible default if parsing fails.

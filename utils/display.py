@@ -71,7 +71,7 @@ def show_welcome() -> None:
     console.print(
         Panel(
             "[bold cyan]Multi-Agent Business Research Assistant[/bold cyan]\n"
-            "[dim]Powered by LangGraph + Claude + Tavily[/dim]\n\n"
+            "[dim]Powered by LangGraph + Groq + Tavily[/dim]\n\n"
             "Ask me about any company — I'll research it for you.\n"
             "Type [bold]exit[/bold] or [bold]quit[/bold] to stop.",
             border_style="cyan",

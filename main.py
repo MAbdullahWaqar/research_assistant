@@ -108,7 +108,7 @@ def run_session() -> None:
 
             # Merge the clarification into the original query and re-run
             enriched_query = f"{user_input} — Additional context: {clarification}"
-            show_info(f"Re-running with enriched query: "{enriched_query}"")
+            show_info(f"Re-running with enriched query:{enriched_query}")
             result = _invoke_graph(graph, config, enriched_query)
 
             if result is None:

@@ -101,7 +101,7 @@ def run_demo() -> None:
             if scripted_answer:
                 console.print(f"[bold yellow]Your answer:[/bold yellow] {scripted_answer}")
                 enriched_query = f"{user_query} — Additional context: {scripted_answer}"
-                show_info(f"Re-running with: "{enriched_query}"")
+                show_info(f"Re-running with: {enriched_query}")
                 result = _invoke_graph(graph, config, enriched_query)
             else:
                 console.print("[yellow]No scripted clarification for this turn — skipping.[/yellow]")

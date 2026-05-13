@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import json
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
-from config import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
+from llm import get_chat_llm
 from state import ResearchState
 from utils import show_agent_start, show_agent_result
 
@@ -72,11 +71,7 @@ def clarity_agent(state: ResearchState) -> dict:
     # Build conversation context so the agent can use history for follow-ups
     history_text = _build_history_text(state.get("messages", []))
 
-    llm = ChatAnthropic(
-        model=LLM_MODEL,
-        temperature=LLM_TEMPERATURE,
-        max_tokens=LLM_MAX_TOKENS,
-    )
+    llm = get_chat_llm()
 
     prompt_messages = [
         SystemMessage(content=_SYSTEM_PROMPT),

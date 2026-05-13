@@ -59,7 +59,7 @@ cp .env.example .env
 ```
 
 Required keys:
-- `ANTHROPIC_API_KEY` — from [console.anthropic.com](https://console.anthropic.com)
+- `GROQ_API_KEY` — from [console.groq.com/keys](https://console.groq.com/keys)
 - `TAVILY_API_KEY` — from [tavily.com](https://tavily.com) (free tier available)
 
 ### 3. Run
@@ -81,6 +81,7 @@ research_assistant/
 ├── graph.py             # LangGraph graph definition & compilation
 ├── state.py             # Shared state schema (TypedDict)
 ├── config.py            # Configuration (model, settings)
+├── llm.py               # Shared Groq chat model factory
 ├── agents/
 │   ├── __init__.py
 │   ├── clarity.py       # Clarity Agent

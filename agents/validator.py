@@ -20,10 +20,10 @@ from __future__ import annotations
 
 import json
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
-from config import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS, MAX_RESEARCH_ATTEMPTS
+from config import MAX_RESEARCH_ATTEMPTS
+from llm import get_chat_llm
 from state import ResearchState
 from utils import show_agent_start, show_agent_result
 
@@ -97,11 +97,7 @@ def validator_agent(state: ResearchState) -> dict:
             ],
         }
 
-    llm = ChatAnthropic(
-        model=LLM_MODEL,
-        temperature=LLM_TEMPERATURE,
-        max_tokens=LLM_MAX_TOKENS,
-    )
+    llm = get_chat_llm()
 
     validation_messages = [
         SystemMessage(content=_SYSTEM_PROMPT),
